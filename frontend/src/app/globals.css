@@ -3,6 +3,17 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  /* ByteBridge (bytebt.com) brand palette */
+  --color-brand-50: #eaf6ee;
+  --color-brand-100: #cfead9;
+  --color-brand-400: #59bd77;
+  --color-brand-500: #3fa95b;
+  --color-brand-600: #35914d;
+  --color-brand-700: #29713c;
+  --color-brand-charcoal: #333333;
+  --color-brand-slate: #96a0bb;
+  --color-brand-mist: #bdc8d4;
 }
 
 @theme inline {
@@ -10,6 +21,16 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  --color-brand-50: var(--color-brand-50);
+  --color-brand-100: var(--color-brand-100);
+  --color-brand-400: var(--color-brand-400);
+  --color-brand-500: var(--color-brand-500);
+  --color-brand-600: var(--color-brand-600);
+  --color-brand-700: var(--color-brand-700);
+  --color-brand-charcoal: var(--color-brand-charcoal);
+  --color-brand-slate: var(--color-brand-slate);
+  --color-brand-mist: var(--color-brand-mist);
 }
 
 @media (prefers-color-scheme: dark) {

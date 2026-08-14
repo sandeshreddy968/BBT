@@ -2,11 +2,11 @@ type ColorKey = "gray" | "blue" | "yellow" | "green" | "red" | "purple";
 
 const COLOR_CLASSES: Record<ColorKey, string> = {
   gray: "bg-gray-100 text-gray-700 ring-gray-200",
-  blue: "bg-blue-50 text-blue-700 ring-blue-200",
+  blue: "bg-brand-mist/25 text-slate-700 ring-brand-mist/60",
   yellow: "bg-yellow-50 text-yellow-800 ring-yellow-200",
-  green: "bg-green-50 text-green-700 ring-green-200",
+  green: "bg-brand-50 text-brand-700 ring-brand-100",
   red: "bg-red-50 text-red-700 ring-red-200",
-  purple: "bg-purple-50 text-purple-700 ring-purple-200",
+  purple: "bg-brand-slate/15 text-slate-700 ring-brand-slate/40",
 };
 
 const STATUS_COLOR: Record<string, ColorKey> = {

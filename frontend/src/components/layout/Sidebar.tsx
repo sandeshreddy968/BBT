@@ -23,8 +23,11 @@ export function Sidebar() {
 
   return (
     <aside className="hidden w-56 shrink-0 border-r border-slate-200 bg-white md:block">
-      <div className="flex h-14 items-center border-b border-slate-200 px-4">
-        <span className="text-sm font-semibold tracking-tight text-slate-900">ByteBridge ITSM</span>
+      <div className="flex h-14 items-center gap-2 border-b border-slate-200 px-4">
+        <span className="inline-block h-2.5 w-2.5 rounded-sm bg-brand-500" />
+        <span className="text-sm font-semibold tracking-tight text-brand-charcoal">
+          ByteBridge <span className="text-brand-600">ITSM</span>
+        </span>
       </div>
       <nav className="space-y-0.5 p-2">
         {NAV_ITEMS.map((item) => {
@@ -34,7 +37,7 @@ export function Sidebar() {
               key={item.href}
               href={item.href}
               className={`block rounded-md px-3 py-2 text-sm font-medium ${
-                active ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"
+                active ? "bg-brand-500 text-white" : "text-slate-600 hover:bg-brand-50 hover:text-brand-700"
               }`}
             >
               {item.label}
