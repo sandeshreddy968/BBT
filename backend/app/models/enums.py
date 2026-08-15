@@ -35,6 +35,7 @@ class IncidentStatus(str, enum.Enum):
     on_hold = "on_hold"
     resolved = "resolved"
     closed = "closed"
+    canceled = "canceled"
 
 
 class ProblemStatus(str, enum.Enum):
@@ -73,3 +74,44 @@ class ArticleStatus(str, enum.Enum):
     draft = "draft"
     published = "published"
     archived = "archived"
+
+
+class ContactType(str, enum.Enum):
+    phone = "phone"
+    email = "email"
+    self_service = "self_service"
+    chat = "chat"
+
+
+class EnvironmentType(str, enum.Enum):
+    production = "production"
+    uat = "uat"
+    development = "development"
+
+
+class ImpactUrgencyLevel(str, enum.Enum):
+    high = "high"
+    medium = "medium"
+    low = "low"
+
+
+class ResolutionCode(str, enum.Enum):
+    solved_permanently = "solved_permanently"
+    solved_workaround = "solved_workaround"
+    not_reproducible = "not_reproducible"
+    duplicate = "duplicate"
+    not_an_issue = "not_an_issue"
+
+
+class CloseCode(str, enum.Enum):
+    closed_resolved = "closed_resolved"
+    closed_by_caller = "closed_by_caller"
+    closed_no_action_needed = "closed_no_action_needed"
+    closed_duplicate = "closed_duplicate"
+
+
+class TicketType(str, enum.Enum):
+    incident = "incident"
+    problem = "problem"
+    change = "change"
+    request = "request"

@@ -6,6 +6,7 @@ from app.models.change import Change
 from app.models.catalog import CatalogItem
 from app.models.request import ServiceRequest
 from app.models.knowledge import KnowledgeArticle
+from app.models.note import TicketNote
 
 __all__ = [
     "User",
@@ -16,4 +17,5 @@ __all__ = [
     "CatalogItem",
     "ServiceRequest",
     "KnowledgeArticle",
+    "TicketNote",
 ]

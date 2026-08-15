@@ -42,7 +42,7 @@ export default function NewCIPage() {
   }
 
   return (
-    <div className="max-w-2xl">
+    <div>
       <PageHeader title="New Configuration Item" />
       <Card className="p-6">
         {error && (

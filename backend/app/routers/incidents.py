@@ -3,20 +3,24 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
+from app import notes_service
 from app.database import get_db
 from app.deps import get_current_user
 from app.models.base import make_number
-from app.models.enums import IncidentStatus, Role
+from app.models.enums import IncidentStatus, Role, TicketType
 from app.models.incident import Incident
 from app.models.user import User
 from app.schemas.incident import (
     IncidentAssign,
+    IncidentClose,
     IncidentCreate,
+    IncidentHold,
     IncidentRead,
     IncidentResolve,
     IncidentUpdate,
     PaginatedIncidents,
 )
+from app.schemas.note import TicketNoteCreate, TicketNoteRead
 
 router = APIRouter(prefix="/incidents", tags=["incidents"])
 
@@ -58,12 +62,14 @@ def list_incidents(
 def create_incident(
     payload: IncidentCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
 ):
+    data = payload.model_dump(exclude={"priority", "impact", "urgency", "contact_type", "environment"})
     incident = Incident(
-        title=payload.title,
-        description=payload.description,
+        **data,
         priority=payload.priority.value,
-        category=payload.category,
-        ci_id=payload.ci_id,
+        impact=payload.impact.value if payload.impact else None,
+        urgency=payload.urgency.value if payload.urgency else None,
+        contact_type=payload.contact_type.value if payload.contact_type else None,
+        environment=payload.environment.value if payload.environment else None,
         caller_id=current_user.id,
         number="",
     )
@@ -116,6 +122,25 @@ def assign_incident(
     return incident
 
 
+@router.post("/{incident_id}/hold", response_model=IncidentRead)
+def hold_incident(
+    incident_id: int,
+    payload: IncidentHold,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if current_user.role != Role.admin.value:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
+    incident = db.query(Incident).filter(Incident.id == incident_id).first()
+    if not incident:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Incident not found")
+    incident.status = IncidentStatus.on_hold.value
+    incident.hold_reason = payload.hold_reason
+    db.commit()
+    db.refresh(incident)
+    return incident
+
+
 @router.post("/{incident_id}/resolve", response_model=IncidentRead)
 def resolve_incident(
     incident_id: int,
@@ -130,6 +155,8 @@ def resolve_incident(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Incident not found")
     incident.status = IncidentStatus.resolved.value
     incident.resolution_notes = payload.resolution_notes
+    incident.resolution_code = payload.resolution_code
+    incident.resolved_by_id = current_user.id
     incident.resolved_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(incident)
@@ -138,7 +165,10 @@ def resolve_incident(
 
 @router.post("/{incident_id}/close", response_model=IncidentRead)
 def close_incident(
-    incident_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
+    incident_id: int,
+    payload: IncidentClose,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     if current_user.role != Role.admin.value:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
@@ -146,6 +176,8 @@ def close_incident(
     if not incident:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Incident not found")
     incident.status = IncidentStatus.closed.value
+    incident.close_code = payload.close_code
+    incident.closed_by_id = current_user.id
     incident.closed_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(incident)
@@ -167,3 +199,27 @@ def reopen_incident(
     db.commit()
     db.refresh(incident)
     return incident
+
+
+@router.get("/{incident_id}/notes", response_model=list[TicketNoteRead])
+def list_incident_notes(
+    incident_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
+):
+    _get_owned_or_404(db, incident_id, current_user)
+    return notes_service.list_notes(
+        db, TicketType.incident.value, incident_id, customer_visible_only=current_user.role != Role.admin.value
+    )
+
+
+@router.post("/{incident_id}/notes", response_model=TicketNoteRead, status_code=status.HTTP_201_CREATED)
+def add_incident_note(
+    incident_id: int,
+    payload: TicketNoteCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    _get_owned_or_404(db, incident_id, current_user)
+    is_visible = payload.is_customer_visible if current_user.role == Role.admin.value else True
+    return notes_service.create_note(
+        db, TicketType.incident.value, incident_id, current_user.id, payload.body, is_visible
+    )

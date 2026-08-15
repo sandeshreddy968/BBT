@@ -7,9 +7,10 @@ import { requestsApi } from "@/lib/api/requests";
 import type { CatalogItem } from "@/lib/types";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Label, Textarea } from "@/components/ui/Input";
+import { Input, Label, Select, Textarea } from "@/components/ui/Input";
 import { LoadingState, ErrorState } from "@/components/shared/LoadingState";
 import { PageHeader } from "@/components/shared/PageHeader";
+import { FormSection } from "@/components/shared/FormSection";
 import { ApiError } from "@/lib/api/client";
 
 export default function CatalogItemDetailPage() {
@@ -17,6 +18,10 @@ export default function CatalogItemDetailPage() {
   const router = useRouter();
   const [item, setItem] = useState<CatalogItem | null>(null);
   const [notes, setNotes] = useState("");
+  const [contactType, setContactType] = useState("");
+  const [department, setDepartment] = useState("");
+  const [location, setLocation] = useState("");
+  const [environment, setEnvironment] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -32,7 +37,14 @@ export default function CatalogItemDetailPage() {
     setSubmitting(true);
     setError(null);
     try {
-      const req = await requestsApi.create({ catalog_item_id: Number(id), notes: notes || undefined });
+      const req = await requestsApi.create({
+        catalog_item_id: Number(id),
+        notes: notes || undefined,
+        contact_type: contactType || undefined,
+        department: department || undefined,
+        location: location || undefined,
+        environment: environment || undefined,
+      });
       router.push(`/requests/${req.id}`);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to submit request");
@@ -44,7 +56,7 @@ export default function CatalogItemDetailPage() {
   if (!item) return <LoadingState />;
 
   return (
-    <div className="max-w-2xl">
+    <div>
       <PageHeader
         title={item.name}
         actions={
@@ -65,10 +77,45 @@ export default function CatalogItemDetailPage() {
           </div>
         )}
 
-        <form onSubmit={handleRequest} className="mt-6 border-t border-slate-200 pt-4">
-          <Label>Notes (optional)</Label>
-          <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Any additional details…" />
-          <Button type="submit" className="mt-3" disabled={submitting}>
+        <form onSubmit={handleRequest} className="border-t border-slate-100 pt-1">
+          <FormSection title="Request Details">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Contact type</Label>
+                <Select value={contactType} onChange={(e) => setContactType(e.target.value)}>
+                  <option value="">None</option>
+                  <option value="phone">Phone</option>
+                  <option value="email">Email</option>
+                  <option value="self_service">Self-Service</option>
+                  <option value="chat">Chat</option>
+                </Select>
+              </div>
+              <div>
+                <Label>Department</Label>
+                <Input value={department} onChange={(e) => setDepartment(e.target.value)} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Location</Label>
+                <Input value={location} onChange={(e) => setLocation(e.target.value)} />
+              </div>
+              <div>
+                <Label>Environment</Label>
+                <Select value={environment} onChange={(e) => setEnvironment(e.target.value)}>
+                  <option value="">None</option>
+                  <option value="production">Production</option>
+                  <option value="uat">UAT</option>
+                  <option value="development">Development</option>
+                </Select>
+              </div>
+            </div>
+            <div>
+              <Label>Notes (optional)</Label>
+              <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Any additional details…" />
+            </div>
+          </FormSection>
+          <Button type="submit" className="mt-2" disabled={submitting}>
             {submitting ? "Submitting…" : "Request this"}
           </Button>
         </form>

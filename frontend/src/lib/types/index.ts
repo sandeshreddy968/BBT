@@ -22,26 +22,48 @@ export interface CI {
   updated_at: string;
 }
 
-export interface Incident {
+// Shared free-text classification/assignment fields present across all four ticket types.
+export interface TicketClassificationFields {
+  category: string | null;
+  subcategory: string | null;
+  service: string | null;
+  business_service: string | null;
+  location: string | null;
+  department: string | null;
+  environment: string | null;
+  assignment_group: string | null;
+  knowledge_article: string | null;
+}
+
+export interface Incident extends TicketClassificationFields {
   id: number;
   number: string;
   title: string;
   description: string;
   status: string;
   priority: string;
-  category: string | null;
+  contact_type: string | null;
+  impact: string | null;
+  urgency: string | null;
+  hold_reason: string | null;
   ci_id: number | null;
   caller_id: number;
   assigned_to_id: number | null;
   problem_id: number | null;
+  change_id: number | null;
+  related_incident_id: number | null;
   resolution_notes: string | null;
+  resolution_code: string | null;
+  resolved_by_id: number | null;
   resolved_at: string | null;
+  close_code: string | null;
+  closed_by_id: number | null;
   closed_at: string | null;
   created_at: string;
   updated_at: string;
 }
 
-export interface Problem {
+export interface Problem extends TicketClassificationFields {
   id: number;
   number: string;
   title: string;
@@ -50,14 +72,22 @@ export interface Problem {
   priority: string;
   root_cause: string | null;
   workaround: string | null;
+  impact: string | null;
+  urgency: string | null;
   ci_id: number | null;
   assigned_to_id: number | null;
   created_by_id: number;
+  resolution_code: string | null;
+  resolved_by_id: number | null;
+  resolved_at: string | null;
+  close_code: string | null;
+  closed_by_id: number | null;
+  closed_at: string | null;
   created_at: string;
   updated_at: string;
 }
 
-export interface Change {
+export interface Change extends TicketClassificationFields {
   id: number;
   number: string;
   title: string;
@@ -73,6 +103,9 @@ export interface Change {
   planned_end: string | null;
   implementation_plan: string | null;
   backout_plan: string | null;
+  close_code: string | null;
+  closed_by_id: number | null;
+  closed_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -87,7 +120,7 @@ export interface CatalogItem {
   updated_at: string;
 }
 
-export interface ServiceRequest {
+export interface ServiceRequest extends TicketClassificationFields {
   id: number;
   number: string;
   catalog_item_id: number;
@@ -95,6 +128,12 @@ export interface ServiceRequest {
   status: string;
   notes: string | null;
   fulfilled_by_id: number | null;
+  contact_type: string | null;
+  ci_id: number | null;
+  resolution_code: string | null;
+  close_code: string | null;
+  closed_by_id: number | null;
+  closed_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -124,4 +163,42 @@ export interface DashboardSummary {
   pending_requests: number;
   total_cis: number;
   published_articles: number;
+}
+
+export interface BreakdownItem {
+  label: string;
+  count: number;
+}
+
+export interface DashboardBreakdown {
+  incidents_by_status: BreakdownItem[];
+  incidents_by_priority: BreakdownItem[];
+}
+
+export interface TrendPoint {
+  date: string;
+  incidents: number;
+  requests: number;
+  changes: number;
+}
+
+export type TicketTypeName = "incident" | "problem" | "change" | "request";
+
+export interface TicketNote {
+  id: number;
+  ticket_type: TicketTypeName;
+  ticket_id: number;
+  author_id: number;
+  body: string;
+  is_customer_visible: boolean;
+  created_at: string;
+}
+
+export interface ActivityItem {
+  type: TicketTypeName;
+  number: string;
+  title: string;
+  status: string;
+  updated_at: string;
+  url: string;
 }

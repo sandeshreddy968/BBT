@@ -32,7 +32,7 @@ export default function NewArticlePage() {
   }
 
   return (
-    <div className="max-w-2xl">
+    <div>
       <PageHeader title="New Knowledge Article" />
       <Card className="p-6">
         {error && (

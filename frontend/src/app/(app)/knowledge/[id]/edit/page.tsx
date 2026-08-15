@@ -49,7 +49,7 @@ export default function EditArticlePage() {
   if (!loaded) return <LoadingState />;
 
   return (
-    <div className="max-w-2xl">
+    <div>
       <PageHeader title="Edit Article" />
       <Card className="p-6">
         {error && (

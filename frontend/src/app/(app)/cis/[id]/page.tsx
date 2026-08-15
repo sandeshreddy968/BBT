@@ -46,7 +46,7 @@ export default function CIDetailPage() {
   const isAdmin = user?.role === "admin";
 
   return (
-    <div className="max-w-2xl">
+    <div>
       <PageHeader
         title={ci.name}
         actions={

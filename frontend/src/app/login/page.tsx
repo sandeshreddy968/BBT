@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { useAuth } from "@/lib/auth/AuthContext";
@@ -34,12 +35,7 @@ export default function LoginPage() {
       <Card className="w-full max-w-sm overflow-hidden p-0">
         <div className="h-1.5 bg-gradient-to-r from-brand-500 via-brand-400 to-brand-mist" />
         <div className="p-6">
-          <div className="mb-1 flex items-center gap-2">
-            <span className="inline-block h-3 w-3 rounded-sm bg-brand-500" />
-            <h1 className="text-lg font-semibold text-brand-charcoal">
-              ByteBridge <span className="text-brand-600">ITSM</span>
-            </h1>
-          </div>
+          <Image src="/brand/bytebridge-logo.png" alt="ByteBridge" width={452} height={148} className="mb-3 h-8 w-auto" priority />
           <p className="mb-6 text-sm text-slate-500">Sign in to your account</p>
           {error && (
             <div className="mb-4">

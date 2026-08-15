@@ -1,14 +1,25 @@
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
+from app import notes_service
 from app.database import get_db
 from app.deps import get_current_user, require_admin
 from app.models.base import make_number
-from app.models.enums import ProblemStatus
+from app.models.enums import ProblemStatus, Role, TicketType
 from app.models.incident import Incident
 from app.models.problem import Problem
 from app.models.user import User
-from app.schemas.problem import PaginatedProblems, ProblemCreate, ProblemRead, ProblemResolve, ProblemUpdate
+from app.schemas.note import TicketNoteCreate, TicketNoteRead
+from app.schemas.problem import (
+    PaginatedProblems,
+    ProblemClose,
+    ProblemCreate,
+    ProblemRead,
+    ProblemResolve,
+    ProblemUpdate,
+)
 
 router = APIRouter(prefix="/problems", tags=["problems"])
 
@@ -31,12 +42,13 @@ def list_problems(
 
 @router.post("", response_model=ProblemRead, status_code=status.HTTP_201_CREATED)
 def create_problem(payload: ProblemCreate, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
+    data = payload.model_dump(exclude={"priority", "impact", "urgency", "environment"})
     problem = Problem(
-        title=payload.title,
-        description=payload.description,
+        **data,
         priority=payload.priority.value,
-        ci_id=payload.ci_id,
-        assigned_to_id=payload.assigned_to_id,
+        impact=payload.impact.value if payload.impact else None,
+        urgency=payload.urgency.value if payload.urgency else None,
+        environment=payload.environment.value if payload.environment else None,
         created_by_id=current_user.id,
         number="",
     )
@@ -88,7 +100,10 @@ def link_incident(
 
 @router.post("/{problem_id}/resolve", response_model=ProblemRead)
 def resolve_problem(
-    problem_id: int, payload: ProblemResolve, db: Session = Depends(get_db), _: User = Depends(require_admin)
+    problem_id: int,
+    payload: ProblemResolve,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
 ):
     problem = db.query(Problem).filter(Problem.id == problem_id).first()
     if not problem:
@@ -97,6 +112,50 @@ def resolve_problem(
     problem.root_cause = payload.root_cause
     if payload.workaround:
         problem.workaround = payload.workaround
+    problem.resolution_code = payload.resolution_code
+    problem.resolved_by_id = current_user.id
+    problem.resolved_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(problem)
     return problem
+
+
+@router.post("/{problem_id}/close", response_model=ProblemRead)
+def close_problem(
+    problem_id: int,
+    payload: ProblemClose,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    problem = db.query(Problem).filter(Problem.id == problem_id).first()
+    if not problem:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Problem not found")
+    problem.status = ProblemStatus.closed.value
+    problem.close_code = payload.close_code
+    problem.closed_by_id = current_user.id
+    problem.closed_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(problem)
+    return problem
+
+
+@router.get("/{problem_id}/notes", response_model=list[TicketNoteRead])
+def list_problem_notes(
+    problem_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
+):
+    return notes_service.list_notes(
+        db, TicketType.problem.value, problem_id, customer_visible_only=current_user.role != Role.admin.value
+    )
+
+
+@router.post("/{problem_id}/notes", response_model=TicketNoteRead, status_code=status.HTTP_201_CREATED)
+def add_problem_note(
+    problem_id: int,
+    payload: TicketNoteCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    is_visible = payload.is_customer_visible if current_user.role == Role.admin.value else True
+    return notes_service.create_note(
+        db, TicketType.problem.value, problem_id, current_user.id, payload.body, is_visible
+    )

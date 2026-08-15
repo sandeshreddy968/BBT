@@ -7,11 +7,23 @@ import type { Change } from "@/lib/types";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { Select } from "@/components/ui/Input";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { LoadingState, ErrorState } from "@/components/shared/LoadingState";
 import { PageHeader } from "@/components/shared/PageHeader";
+import { FormSection } from "@/components/shared/FormSection";
+import { NotesPanel } from "@/components/shared/NotesPanel";
 import { formatDate, formatLabel } from "@/lib/utils/format";
 import { ApiError } from "@/lib/api/client";
+
+function Field({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div>
+      <dt className="text-sm text-slate-500">{label}</dt>
+      <dd className="text-sm text-slate-900">{value ?? "—"}</dd>
+    </div>
+  );
+}
 
 export default function ChangeDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -19,6 +31,7 @@ export default function ChangeDetailPage() {
   const { user } = useAuth();
   const [change, setChange] = useState<Change | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [closeCode, setCloseCode] = useState("closed_resolved");
   const [busy, setBusy] = useState(false);
 
   const load = () => {
@@ -48,7 +61,7 @@ export default function ChangeDetailPage() {
   const isAdmin = user?.role === "admin";
 
   return (
-    <div className="max-w-3xl">
+    <div>
       <PageHeader
         title={`${change.number}: ${change.title}`}
         actions={
@@ -63,42 +76,67 @@ export default function ChangeDetailPage() {
         </div>
       )}
       <Card className="p-6">
-        <div className="mb-4 flex gap-2">
+        <div className="mb-2 flex gap-2">
           <StatusBadge status={change.status} />
         </div>
-        <dl className="grid grid-cols-3 gap-4 text-sm">
-          <div>
-            <dt className="text-slate-500">Type</dt>
-            <dd className="text-slate-900">{formatLabel(change.change_type)}</dd>
+
+        <FormSection title="Change Information">
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Category" value={change.category} />
+            <Field label="Subcategory" value={change.subcategory} />
           </div>
           <div>
-            <dt className="text-slate-500">Risk</dt>
-            <dd className="text-slate-900">{formatLabel(change.risk)}</dd>
+            <div className="text-sm text-slate-500">Description</div>
+            <p className="mt-1 whitespace-pre-wrap text-sm text-slate-800">{change.description}</p>
           </div>
-          <div>
-            <dt className="text-slate-500">Planned start</dt>
-            <dd className="text-slate-900">{formatDate(change.planned_start)}</dd>
+        </FormSection>
+
+        <FormSection title="Classification & Risk">
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Change type" value={formatLabel(change.change_type)} />
+            <Field label="Risk" value={formatLabel(change.risk)} />
+            <Field label="Assignment group" value={change.assignment_group} />
+            <Field label="Planned start" value={formatDate(change.planned_start)} />
           </div>
-        </dl>
-        <div className="mt-4">
-          <div className="text-sm text-slate-500">Description</div>
-          <p className="mt-1 whitespace-pre-wrap text-sm text-slate-800">{change.description}</p>
-        </div>
-        {change.implementation_plan && (
-          <div className="mt-4">
-            <div className="text-sm text-slate-500">Implementation plan</div>
-            <p className="mt-1 whitespace-pre-wrap text-sm text-slate-800">{change.implementation_plan}</p>
+        </FormSection>
+
+        <FormSection title="Additional Information">
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Business service" value={change.business_service} />
+            <Field label="Location" value={change.location} />
+            <Field label="Department" value={change.department} />
+            <Field label="Environment" value={change.environment && formatLabel(change.environment)} />
+            <Field label="Knowledge article" value={change.knowledge_article} />
+            <Field label="Created" value={formatDate(change.created_at)} />
           </div>
-        )}
-        {change.backout_plan && (
-          <div className="mt-4">
-            <div className="text-sm text-slate-500">Backout plan</div>
-            <p className="mt-1 whitespace-pre-wrap text-sm text-slate-800">{change.backout_plan}</p>
-          </div>
+        </FormSection>
+
+        <FormSection title="Planning">
+          {change.implementation_plan && (
+            <div>
+              <div className="text-sm text-slate-500">Implementation plan</div>
+              <p className="mt-1 whitespace-pre-wrap text-sm text-slate-800">{change.implementation_plan}</p>
+            </div>
+          )}
+          {change.backout_plan && (
+            <div>
+              <div className="text-sm text-slate-500">Backout plan</div>
+              <p className="mt-1 whitespace-pre-wrap text-sm text-slate-800">{change.backout_plan}</p>
+            </div>
+          )}
+        </FormSection>
+
+        {(change.close_code || change.closed_at) && (
+          <FormSection title="Resolution">
+            <div className="grid grid-cols-2 gap-4">
+              <Field label="Close code" value={change.close_code && formatLabel(change.close_code)} />
+              <Field label="Closed at" value={formatDate(change.closed_at)} />
+            </div>
+          </FormSection>
         )}
 
         {isAdmin && (
-          <div className="mt-6 flex flex-wrap gap-2 border-t border-slate-200 pt-4">
+          <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-slate-200 pt-4">
             {change.status === "draft" && (
               <Button disabled={busy} onClick={() => runAction(() => changesApi.submit(change.id))}>
                 Submit for Approval
@@ -120,12 +158,25 @@ export default function ChangeDetailPage() {
               </Button>
             )}
             {change.status === "implemented" && (
-              <Button disabled={busy} onClick={() => runAction(() => changesApi.close(change.id))}>
-                Close Change
-              </Button>
+              <>
+                <Select value={closeCode} onChange={(e) => setCloseCode(e.target.value)} className="max-w-xs">
+                  <option value="closed_resolved">Closed/Resolved</option>
+                  <option value="closed_by_caller">Closed by Caller</option>
+                  <option value="closed_no_action_needed">No Action Needed</option>
+                  <option value="closed_duplicate">Duplicate</option>
+                </Select>
+                <Button disabled={busy} onClick={() => runAction(() => changesApi.close(change.id, closeCode))}>
+                  Close Change
+                </Button>
+              </>
             )}
           </div>
         )}
+      </Card>
+
+      <Card className="mt-6 p-6">
+        <h2 className="mb-3 text-sm font-semibold text-slate-900">Activity</h2>
+        <NotesPanel ticketType="change" ticketId={change.id} />
       </Card>
     </div>
   );

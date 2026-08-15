@@ -2,7 +2,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict
 
-from app.models.enums import ChangeType, Priority
+from app.models.enums import ChangeType, EnvironmentType, Priority
 
 
 class ChangeCreate(BaseModel):
@@ -16,6 +16,15 @@ class ChangeCreate(BaseModel):
     planned_end: datetime | None = None
     implementation_plan: str | None = None
     backout_plan: str | None = None
+    category: str | None = None
+    subcategory: str | None = None
+    service: str | None = None
+    business_service: str | None = None
+    location: str | None = None
+    department: str | None = None
+    environment: EnvironmentType | None = None
+    assignment_group: str | None = None
+    knowledge_article: str | None = None
 
 
 class ChangeUpdate(BaseModel):
@@ -29,6 +38,19 @@ class ChangeUpdate(BaseModel):
     planned_end: datetime | None = None
     implementation_plan: str | None = None
     backout_plan: str | None = None
+    category: str | None = None
+    subcategory: str | None = None
+    service: str | None = None
+    business_service: str | None = None
+    location: str | None = None
+    department: str | None = None
+    environment: EnvironmentType | None = None
+    assignment_group: str | None = None
+    knowledge_article: str | None = None
+
+
+class ChangeClose(BaseModel):
+    close_code: str | None = None
 
 
 class ChangeRead(BaseModel):
@@ -41,6 +63,15 @@ class ChangeRead(BaseModel):
     change_type: str
     status: str
     risk: str
+    category: str | None
+    subcategory: str | None
+    service: str | None
+    business_service: str | None
+    location: str | None
+    department: str | None
+    environment: str | None
+    assignment_group: str | None
+    knowledge_article: str | None
     ci_id: int | None
     problem_id: int | None
     requested_by_id: int
@@ -49,6 +80,9 @@ class ChangeRead(BaseModel):
     planned_end: datetime | None
     implementation_plan: str | None
     backout_plan: str | None
+    close_code: str | None
+    closed_by_id: int | None
+    closed_at: datetime | None
     created_at: datetime
     updated_at: datetime
 

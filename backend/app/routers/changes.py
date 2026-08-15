@@ -1,13 +1,17 @@
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
+from app import notes_service
 from app.database import get_db
 from app.deps import get_current_user, require_admin
 from app.models.base import make_number
 from app.models.change import Change
-from app.models.enums import ChangeStatus
+from app.models.enums import ChangeStatus, Role, TicketType
 from app.models.user import User
-from app.schemas.change import ChangeCreate, ChangeRead, ChangeUpdate, PaginatedChanges
+from app.schemas.change import ChangeClose, ChangeCreate, ChangeRead, ChangeUpdate, PaginatedChanges
+from app.schemas.note import TicketNoteCreate, TicketNoteRead
 
 router = APIRouter(prefix="/changes", tags=["changes"])
 
@@ -37,17 +41,12 @@ def list_changes(
 
 @router.post("", response_model=ChangeRead, status_code=status.HTTP_201_CREATED)
 def create_change(payload: ChangeCreate, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
+    data = payload.model_dump(exclude={"change_type", "risk", "environment"})
     change = Change(
-        title=payload.title,
-        description=payload.description,
+        **data,
         change_type=payload.change_type.value,
         risk=payload.risk.value,
-        ci_id=payload.ci_id,
-        problem_id=payload.problem_id,
-        planned_start=payload.planned_start,
-        planned_end=payload.planned_end,
-        implementation_plan=payload.implementation_plan,
-        backout_plan=payload.backout_plan,
+        environment=payload.environment.value if payload.environment else None,
         requested_by_id=current_user.id,
         number="",
     )
@@ -115,9 +114,39 @@ def implement_change(change_id: int, db: Session = Depends(get_db), _: User = De
 
 
 @router.post("/{change_id}/close", response_model=ChangeRead)
-def close_change(change_id: int, db: Session = Depends(get_db), _: User = Depends(require_admin)):
+def close_change(
+    change_id: int,
+    payload: ChangeClose,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
     change = _get_or_404(db, change_id)
     change.status = ChangeStatus.closed.value
+    change.close_code = payload.close_code
+    change.closed_by_id = current_user.id
+    change.closed_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(change)
     return change
+
+
+@router.get("/{change_id}/notes", response_model=list[TicketNoteRead])
+def list_change_notes(
+    change_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
+):
+    return notes_service.list_notes(
+        db, TicketType.change.value, change_id, customer_visible_only=current_user.role != Role.admin.value
+    )
+
+
+@router.post("/{change_id}/notes", response_model=TicketNoteRead, status_code=status.HTTP_201_CREATED)
+def add_change_note(
+    change_id: int,
+    payload: TicketNoteCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    is_visible = payload.is_customer_visible if current_user.role == Role.admin.value else True
+    return notes_service.create_note(
+        db, TicketType.change.value, change_id, current_user.id, payload.body, is_visible
+    )
